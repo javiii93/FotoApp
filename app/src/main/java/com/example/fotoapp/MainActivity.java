@@ -1,5 +1,6 @@
 package com.example.fotoapp;
 
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
 
@@ -19,6 +20,7 @@ import android.widget.TextView;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -32,79 +34,93 @@ public class MainActivity extends AppCompatActivity {
     static ImageView imageView;
     Button b1;
     Button b2;
+    Uri photoURI;
     TextView text;
     String currentPhotoPath;
-    String rutas [];
-    int l=0;
+    String rutas[];
+    int l = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         leerRutas();
-        b1=findViewById(R.id.button);
-        imageView=findViewById(R.id.imageView);
-        b2=findViewById(R.id.button2);
-        text=findViewById(R.id.textView);
-    b1.setOnClickListener(new View.OnClickListener() {
-    @Override
-    public void onClick(View v) {
-        dispatchTakePictureIntent();
-        apuntaarRuta();
-    }
-});
-    b2.setOnClickListener(new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-try{            if(rutas.length!=0){
-                if(l<rutas.length){
-                imagenes(l);
-                l++;}else if(l>=rutas.length){
-                    l=0;
-                }
-            }}catch (Exception ex){
-    System.out.println("no has guardado ninguna foto");
+        b1 = findViewById(R.id.button);
+        imageView = findViewById(R.id.imageView);
+        b2 = findViewById(R.id.button2);
+        text = findViewById(R.id.textView);
+        b1.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dispatchTakePictureIntent();
+                //apuntaarRuta();
             }
-        }
-    });
+        });
+        b2.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                leerRutas();
+                System.out.println(l);
+                System.out.println(rutas.length);
+
+                try {
+                    if (rutas.length != 0) {
+                        if (l < rutas.length) {
+                            imagenes(l);
+                            l++;
+                            if (l == rutas.length) {
+                                l = 0;
+
+                            }
+                        }
+
+                    }
+                } catch (Exception ex) {
+                    System.out.println("no has guardado ninguna foto");
+                }
+            }
+        });
     }
-    public void leerRutas(){
-        try
-        {
+
+    public void leerRutas() {
+        try {
             BufferedReader fin =
                     new BufferedReader(
                             new InputStreamReader(
                                     openFileInput("rutas.txt")));
             String texto = fin.readLine();
             fin.close();
-           rutas=texto.split("@");
-        }
-        catch (Exception ex)
-        {
+
+
+            rutas = texto.split("@");
+        } catch (Exception ex) {
             Log.e("Ficheros", "Error al leer fichero desde memoria interna");
         }
     }
-    public void imagenes(int pos){
+
+    public void imagenes(int pos) {
         text.setText(rutas[pos]);
         //File f=new File(rutas[pos]);
-        Bitmap bitmap = BitmapFactory.decodeFile(rutas[pos]);
-        imageView.setImageBitmap(bitmap);
+        //Bitmap bitmap = BitmapFactory.decodeFile(rutas[pos]);
+        imageView.setImageURI(Uri.parse(rutas[pos]));
     }
-    public void apuntaarRuta(){
-        try
-        {
-            OutputStreamWriter fout=
-                    new OutputStreamWriter(
-                            openFileOutput("rutas.txt", Context.MODE_PRIVATE));
 
-            fout.write(currentPhotoPath+"@");
-            fout.close();
-        }
-        catch (Exception ex)
-        {
+    public void apuntaarRuta(Uri ruta) {
+        try {
+            FileWriter fw = new FileWriter(new File(this.getFilesDir(), "rutas.txt"), true);
+            //OutputStreamWriter fout=
+            //new OutputStreamWriter(
+            //openFileOutput("rutas.txt", Context.MODE_PRIVATE));
+            fw.write(ruta.toString() + "@");
+            //fout.write(currentPhotoPath+"@");
+            fw.close();
+            //fout.write(ruta.toString() + "@");
+            //fout.close();
+        } catch (Exception ex) {
             Log.e("Ficheros", "Error al escribir fichero a memoria interna");
         }
     }
+
     private File createImageFile() throws IOException {
         // Create an image file name
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
@@ -130,11 +146,12 @@ try{            if(rutas.length!=0){
             try {
                 photoFile = createImageFile();
             } catch (IOException ex) {
+                System.out.println("no estasw creando el fichero de la imagen");
                 // Error occurred while creating the File
             }
             // Continue only if the File was successfully created
             if (photoFile != null) {
-                Uri photoURI = FileProvider.getUriForFile(this,
+                photoURI = FileProvider.getUriForFile(this,
                         "com.example.fotoapp.fileprovider",
                         photoFile);
                 takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
@@ -142,14 +159,15 @@ try{            if(rutas.length!=0){
             }
         }
 
-        }
+    }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
-            Bundle extras = data.getExtras();
-            Bitmap imageBitmap = (Bitmap) extras.get("data");
-            imageView.setImageBitmap(imageBitmap);
+            //Bundle extras = data.getExtras();
+            //Bitmap imageBitmap = (Bitmap) extras.get("data");
+            imageView.setImageURI(photoURI);
+            apuntaarRuta(photoURI);
         }
     }
 }
